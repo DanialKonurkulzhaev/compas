@@ -2,8 +2,6 @@
 
 ## Запуск
 
-Нужен Docker Desktop с Linux-контейнерами. Локальные Python и PostgreSQL не требуются.
-
 Из корня проекта:
 
 ```powershell
