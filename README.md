@@ -2,19 +2,51 @@
 
 ## Запуск
 
-Из корня проекта:
+Нужны Git и запущенный Docker Desktop (Linux containers). Python и PostgreSQL на компьютер устанавливать не нужно.
+
+Первый запуск:
 
 ```powershell
+git clone --branch compas https://github.com/DanialKonurkulzhaev/compas.git
+cd compas
 docker compose -f docker-compose.init.yml run --rm init
 docker compose up -d --build
 docker compose ps -a
 ```
 
-Первая команда создаёт `.env` с новыми ключами. Существующий файл не перезаписывается. `.env` от «Одеяла» не подходит: перед первым запуском сохраните его под другим именем. Не заменяйте секреты уже используемой базы.
+Команда `init` создаёт `.env`; существующий файл не перезаписывается. Если остался `.env` от «Одеяла», сначала переименуйте его в `.env.old`. Настроенный `.env` Compas и его секреты сохраняйте.
 
-Swagger: http://localhost:8001/docs. Миграции и загрузка недостающих записей каталога выполняются автоматически. `migrate` и `seed` должны завершиться с кодом 0, `db` и `app` — перейти в healthy. При ошибке: `docker compose logs --tail 100 migrate seed app`.
+Swagger: **http://localhost:8001/docs**. Миграции и каталог из 13 тестов создаются автоматически. `migrate` и `seed` завершаются с кодом 0 — это нормально; `db` и `app` должны стать healthy.
 
-Для запуска совместно с фронтом: [docs/frontend-integration.md](docs/frontend-integration.md).
+Если проект уже скачан, обновление и запуск выполняются из его папки:
+
+```powershell
+git switch compas
+git pull --ff-only
+docker compose -f docker-compose.init.yml run --rm init
+docker compose up -d --build
+```
+
+Если запуск не удался:
+
+```powershell
+docker compose logs --tail 100 migrate seed app nginx
+```
+
+Остановка: `docker compose stop`. Данные сохраняются; для обычного обновления не используйте `down -v`.
+
+### Подключение локального фронта
+
+Для фронта, запущенного через `npm run dev`, в его `.env.development`:
+
+```dotenv
+NEXT_PUBLIC_SERVER_API_URL=http://localhost:8001
+NEXT_PUBLIC_BFF_API_URL=http://localhost:3000/api
+```
+
+После изменения перезапустите `npm run dev`. Фронт открывается на http://localhost:3000; общая Docker-сеть для этого режима не нужна. Вход через Яндекс настраивается отдельно: [docs/yandex-login.md](docs/yandex-login.md).
+
+Для запуска самого фронта в Docker: [docs/frontend-integration.md](docs/frontend-integration.md).
 
 В Linux пользователь контейнера подготовки по умолчанию имеет UID/GID 1000. Если UID/GID владельца проекта другие, задайте `LOCAL_UID` и `LOCAL_GID` перед первой командой. Секреты и дампы не входят в репозиторий.
 
