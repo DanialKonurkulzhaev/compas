@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import AnyHttpUrl, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy.engine import URL
 
@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     DATA_ENCRYPTION_KEY: str
     COOKIE_SECURE: bool = False
+    LEGACY_AUTH_COOKIES: bool = False
+    FRONTEND_URL: AnyHttpUrl | None = None
     ALLOWED_ORIGINS: list[str] = []
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

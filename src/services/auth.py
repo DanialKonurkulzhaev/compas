@@ -120,7 +120,7 @@ class AuthService(BaseService):
     async def refresh_tokens(self, refresh_token: str) -> Tuple[str, str]:
         try:
             payload = self.decode_token(refresh_token, is_refresh=True)
-            user_id = payload.get("user_id")
+            user_id = uuid.UUID(str(payload["user_id"]))
             user = await self.db.users.get_one_or_none(id=user_id)
             if not user:
                 raise IncorrectTokenException("User not found")

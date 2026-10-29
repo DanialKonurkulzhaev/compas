@@ -1,4 +1,4 @@
-from src.config import settings
+from uuid import UUID
 from fastapi import APIRouter, File, HTTPException, Response, UploadFile
 from src.exceptions import (
     EmailNotRegisteredException,
@@ -27,12 +27,14 @@ from src.schemas.users import (
     TokenResponse,
     RefreshTokenRequest,
     AvatarUploadResponse,
+    RegistrationResponse,
 )
 from src.services.auth import AuthService
 from src.api.dependencies.user_id import UserIdDep
 from src.api.dependencies.db import DBDep
 from src.services.mail import send_email_to_recover_password
 from starlette.concurrency import run_in_threadpool
+from src.utils.auth_cookies import delete_auth_cookies, set_auth_cookies
 
 router = APIRouter(prefix="/auth", tags=["Авторизация и аутентификация"])
 
@@ -53,7 +55,7 @@ async def delete_me(db: DBDep, user_id: UserIdDep):
 @router.post(
     "/register",
     description="\n             Регистрация нового пользователя.\n\n             Входящие данные: email: user@example.com; username: string, birth_date: 2025-09-22; gender: male/female; \n             city: string; phone_number: string; password: string; confirm_password: string\n             ",
-    response_model=TokenResponse,
+    response_model=RegistrationResponse,
 )
 async def register_user(db: DBDep, data: UserRequestAdd):
     try:
@@ -62,7 +64,13 @@ async def register_user(db: DBDep, data: UserRequestAdd):
         raise UserEmailAlreadyExistsHTTPException
     except PasswordDoNotMatchException:
         raise PasswordDoNotMatchHTTPException
-    return {"access_token": access_token, "refresh_token": refresh_token}
+    user_id = UUID(AuthService().decode_token(access_token)["user_id"])
+    user = await AuthService(db).get_one_or_none_user(id=user_id)
+    return {
+        **user.model_dump(),
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+    }
 
 
 @router.post(
@@ -77,20 +85,7 @@ async def login_user(db: DBDep, data: UserRequestLogIn, response: Response):
         raise EmailNotRegisteredHTTPException
     except IncorrectPasswordException:
         raise IncorrectPasswordHTTPException
-    response.set_cookie(
-        "compas_access_token",
-        access_token,
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-    )
-    response.set_cookie(
-        "compas_refresh_token",
-        refresh_token,
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
-    )
+    set_auth_cookies(response, access_token, refresh_token)
     return {"access_token": access_token, "refresh_token": refresh_token}
 
 
@@ -98,29 +93,16 @@ async def login_user(db: DBDep, data: UserRequestLogIn, response: Response):
 async def auth_with_token(db: DBDep, token: str, response: Response):
     try:
         payload = AuthService(db).decode_token(token)
-        user_id = payload.get("user_id")
+        user_id = UUID(str(payload["user_id"]))
         user = await AuthService(db).get_one_or_none_user(id=user_id)
         if not user:
             raise IncorrectTokenHTTPException
         access_token, refresh_token = AuthService(db).create_tokens(
             {"user_id": str(user.id), "role_id": user.role_id}
         )
-        response.set_cookie(
-            "compas_access_token",
-            access_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="lax",
-        )
-        response.set_cookie(
-            "compas_refresh_token",
-            refresh_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="lax",
-        )
+        set_auth_cookies(response, access_token, refresh_token)
         return {"access_token": access_token, "refresh_token": refresh_token}
-    except IncorrectTokenException:
+    except (IncorrectTokenException, KeyError, TypeError, ValueError):
         raise IncorrectTokenHTTPException
 
 
@@ -130,20 +112,7 @@ async def refresh_token(db: DBDep, data: RefreshTokenRequest, response: Response
         access_token, refresh_token = await AuthService(db).refresh_tokens(
             data.refresh_token
         )
-        response.set_cookie(
-            "compas_access_token",
-            access_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="lax",
-        )
-        response.set_cookie(
-            "compas_refresh_token",
-            refresh_token,
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite="lax",
-        )
+        set_auth_cookies(response, access_token, refresh_token)
         return {"access_token": access_token, "refresh_token": refresh_token}
     except IncorrectTokenException:
         raise IncorrectTokenHTTPException
@@ -151,8 +120,7 @@ async def refresh_token(db: DBDep, data: RefreshTokenRequest, response: Response
 
 @router.post("/logout")
 async def logout(response: Response):
-    response.delete_cookie("compas_access_token")
-    response.delete_cookie("compas_refresh_token")
+    delete_auth_cookies(response)
     return {"status": "OK"}
 
 

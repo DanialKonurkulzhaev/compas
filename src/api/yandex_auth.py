@@ -19,6 +19,7 @@ from src.services.yandex import (
     exchange_code,
     get_yandex_user,
 )
+from src.utils.auth_cookies import set_auth_cookies
 
 router = APIRouter(prefix="/yandex", tags=["Авторизация Яндекс"])
 STATE_COOKIE = "compas_yandex_state"
@@ -31,21 +32,19 @@ def state_serializer():
     )
 
 
-def token_response(tokens):
+def token_response(tokens, redirect_to_frontend=False):
     access, refresh = tokens
-    response = Response(
-        content=TokenResponse(
-            access_token=access, refresh_token=refresh
-        ).model_dump_json(),
-        media_type="application/json",
-    )
-    for name, value in [
-        ("compas_access_token", access),
-        ("compas_refresh_token", refresh),
-    ]:
-        response.set_cookie(
-            name, value, httponly=True, secure=settings.COOKIE_SECURE, samesite="lax"
+    response = (
+        RedirectResponse(str(settings.FRONTEND_URL), status_code=303)
+        if redirect_to_frontend and settings.FRONTEND_URL
+        else Response(
+            content=TokenResponse(
+                access_token=access, refresh_token=refresh
+            ).model_dump_json(),
+            media_type="application/json",
         )
+    )
+    set_auth_cookies(response, access, refresh)
     response.delete_cookie(STATE_COOKIE, path="/yandex")
     response.headers["Cache-Control"] = "no-store"
     response.headers["Referrer-Policy"] = "no-referrer"
@@ -130,7 +129,9 @@ async def yandex_callback_code(
         return response
     token = await exchange_code(code, verifier)
     profile = await get_yandex_user(token)
-    return token_response(await YandexService(db).login(profile))
+    return token_response(
+        await YandexService(db).login(profile), redirect_to_frontend=True
+    )
 
 
 @router.post(

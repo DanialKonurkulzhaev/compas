@@ -127,6 +127,10 @@ class TokenResponse(BaseModel):
     refresh_token: str
 
 
+class RegistrationResponse(User, TokenResponse):
+    role_id: int
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 

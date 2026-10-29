@@ -10,10 +10,13 @@ from src.exceptions import (
 )
 from src.services.auth import AuthService
 from src.api.dependencies.db import DBDep
+from src.config import settings
 
 
 def get_token(request: Request) -> str:
     token = request.cookies.get("compas_access_token", None)
+    if not token and settings.LEGACY_AUTH_COOKIES:
+        token = request.cookies.get("access_token")
     if not token:
         raise NoAccessTokenHTTPException
     return token

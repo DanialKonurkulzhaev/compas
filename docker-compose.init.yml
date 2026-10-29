@@ -1,0 +1,10 @@
+name: compas-init
+services:
+  init:
+    image: public.ecr.aws/docker/library/python:3.12-alpine
+    user: '${LOCAL_UID:-1000}:${LOCAL_GID:-1000}'
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: ['python', 'scripts/init_env.py']
+    network_mode: none

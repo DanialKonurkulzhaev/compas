@@ -14,6 +14,8 @@
 | ACCESS_TOKEN_EXPIRE_MINUTES | 30 |
 | REFRESH_TOKEN_EXPIRE_DAYS | 7 |
 | COOKIE_SECURE | false локально, true при HTTPS |
+| LEGACY_AUTH_COOKIES | Принимать и выдавать access_token/refresh_token для текущего фронта. По умолчанию false в Python, true в Compose; compas_* сохраняются |
+| FRONTEND_URL | Фиксированный адрес перехода после OAuth. Для фронта http://localhost:3000; без значения callback возвращает JSON |
 | ALLOWED_ORIGINS | JSON-массив точных адресов фронтенда, например `["http://localhost:3000"]` |
 | SMTP_HOST / SMTP_PORT | Адрес SMTP, порт STARTTLS (по умолчанию 587) |
 | SMTP_USER / SMTP_PASSWORD / SMTP_FROM | Учётные данные и адрес отправителя |

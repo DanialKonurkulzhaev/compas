@@ -1,0 +1,143 @@
+diff --git a/deploy/docker/Dockerfile b/deploy/docker/Dockerfile
+index 710fd97..dc4723a 100644
+--- a/deploy/docker/Dockerfile
++++ b/deploy/docker/Dockerfile
+@@ -8,4 +8,9 @@ RUN npm ci
+ 
+ COPY . .
+ 
++ARG NEXT_PUBLIC_SERVER_API_URL=http://localhost:8001
++ARG NEXT_PUBLIC_BFF_API_URL=http://localhost:3000/api
++ENV NEXT_PUBLIC_SERVER_API_URL=$NEXT_PUBLIC_SERVER_API_URL
++ENV NEXT_PUBLIC_BFF_API_URL=$NEXT_PUBLIC_BFF_API_URL
++ENV NEXT_TELEMETRY_DISABLED=1
+ RUN npm run build
+diff --git a/deploy/docker/docker-compose.yml b/deploy/docker/docker-compose.yml
+index a5fc145..aeec14d 100644
+--- a/deploy/docker/docker-compose.yml
++++ b/deploy/docker/docker-compose.yml
+@@ -1,20 +1,23 @@
++name: compas-frontend
+ services:
+   app:
+-    container_name: odeyalo-frontend-app
++    container_name: compas-frontend-app
+     build:
+       dockerfile: ./deploy/docker/Dockerfile
+       context: ../../
++    environment:
++      SERVER_API_INTERNAL_URL: http://compas-api
++      BFF_INTERNAL_URL: http://127.0.0.1:3000/api
+     command: npm start
+     restart: on-failure
+     expose:
+       - "3000"
+     networks:
+       - odeyalo-network
+-    mac_address: 02:42:ac:18:06:01
+ 
+   nginx:
+-    container_name: odeyalo-frontend-nginx
+-    image: public.ecr.aws/nginx/nginx:1.25-alpine
++    container_name: compas-frontend-nginx
++    image: compas-frontend-nginx
+     build:
+       dockerfile: ./deploy/docker/nginx/Dockerfile
+       context: ../../
+@@ -23,11 +26,12 @@ services:
+       - "80"
+     networks:
+       - odeyalo-network
++    ports:
++      - "127.0.0.1:3000:80"
+     depends_on:
+       - app
+-    mac_address: 02:42:ac:18:06:02
+ 
+ networks:
+   odeyalo-network:
+-    name: odeyalo-network
+-    driver: bridge
++    name: ${COMPAS_NETWORK:-compas_default}
++    external: true
+diff --git a/deploy/docker/nginx/default.conf b/deploy/docker/nginx/default.conf
+index 1b2dace..4659376 100644
+--- a/deploy/docker/nginx/default.conf
++++ b/deploy/docker/nginx/default.conf
+@@ -1,5 +1,5 @@
+ upstream app_upstream {
+-  server odeyalo-frontend-app:3000;
++  server compas-frontend-app:3000;
+ }
+ 
+ server {
+diff --git a/src/server/utils/accessControl.ts b/src/server/utils/accessControl.ts
+index 00a3943..17dd860 100644
+--- a/src/server/utils/accessControl.ts
++++ b/src/server/utils/accessControl.ts
+@@ -5,34 +5,12 @@ import { bffAxios, serverAxios } from "@/shared/config/api";
+ import { cookies } from "@/shared/data";
+ import type {
+   GetMeResponseData,
+-  YandexCallbackApiResponseData,
+ } from "@/shared/types";
+ import { checkAccess, parseAccessJWT } from "@/shared/utils";
+ 
+ export const checkAuth = async (
+   request: NextRequest,
+ ): Promise<NextResponse> => {
+-  const searchParams = request.nextUrl.searchParams;
+-  if (searchParams.has("code")) {
+-    const code = searchParams.get("code");
+-    try {
+-      const { data } = await serverAxios.get<YandexCallbackApiResponseData>(
+-        "/yandex/callback/code",
+-        {
+-          params: {
+-            code: code,
+-          },
+-        },
+-      );
+-      return setAuthCookies(NextResponse.next(), {
+-        accessToken: data?.access_token,
+-        refreshToken: data?.refresh_token,
+-      });
+-    } catch {
+-      return NextResponse.redirect(new URL("/auth/login", request.url));
+-    }
+-  }
+-
+   const accessToken = request.cookies.get(cookies.accessToken.name)?.value;
+   const refreshToken = request.cookies.get(cookies.refreshToken.name)?.value;
+ 
+@@ -44,7 +22,7 @@ export const checkAuth = async (
+   try {
+     const { data } = await bffAxios.get<GetMeResponseData>("/users/me", {
+       headers: {
+-        "Cookie": cookies.toString(),
++        "Cookie": request.cookies.toString(),
+       },
+     });
+ 
+diff --git a/src/shared/config/api.ts b/src/shared/config/api.ts
+index 129045d..b1bdcb0 100644
+--- a/src/shared/config/api.ts
++++ b/src/shared/config/api.ts
+@@ -4,11 +4,15 @@ export const SEVER_API_URL = process.env.NEXT_PUBLIC_SERVER_API_URL;
+ export const BFF_API_URL = process.env.NEXT_PUBLIC_BFF_API_URL;
+ 
+ export const serverAxios = axios.create({
+-  baseURL: SEVER_API_URL,
++  baseURL: typeof window === "undefined"
++    ? process.env.SERVER_API_INTERNAL_URL || SEVER_API_URL
++    : SEVER_API_URL,
+   withCredentials: true,
+ });
+ 
+ export const bffAxios = axios.create({
+-  baseURL: BFF_API_URL,
++  baseURL: typeof window === "undefined"
++    ? process.env.BFF_INTERNAL_URL || BFF_API_URL
++    : BFF_API_URL,
+   withCredentials: true,
+ });

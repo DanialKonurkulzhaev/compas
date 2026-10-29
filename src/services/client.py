@@ -3,13 +3,33 @@ import uuid
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select
 from src.exceptions import ObjectNotFoundException, MyAppException
-from src.models import UsersOrm
+from src.models import ClientsOrm, UsersOrm
+from src.schemas.psychologist import PsychologistResponseRequest
 from src.services.base import BaseService
 
 logger = logging.getLogger(__name__)
 
 
 class ClientService(BaseService):
+    async def get_your_psychologists(self, client_id: uuid.UUID):
+        stmt = (
+            select(UsersOrm)
+            .join(ClientsOrm, ClientsOrm.mentor_id == UsersOrm.id)
+            .where(
+                ClientsOrm.client_id == client_id,
+                ClientsOrm.status.is_(True),
+                UsersOrm.role_id == 2,
+            )
+            .options(selectinload(UsersOrm.inquiries))
+            .order_by(UsersOrm.username, UsersOrm.id)
+        )
+        result = await self.db.session.execute(stmt)
+        items = [
+            PsychologistResponseRequest.model_validate(user)
+            for user in result.scalars().unique()
+        ]
+        return {"items": items, "total": len(items)}
+
     async def get_client(
         self, mentor_id: uuid.UUID, client_id: uuid.UUID | None = None
     ):

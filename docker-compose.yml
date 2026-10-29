@@ -27,16 +27,32 @@ services:
       db:
         condition: service_healthy
     restart: 'no'
+  seed:
+    build: .
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+    command: ['python', '-m', 'scripts.manage', 'seed']
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    restart: 'no'
   app:
     build: .
     env_file: .env
     environment:
       DB_HOST: db
       DB_PORT: 5432
+      LEGACY_AUTH_COOKIES: ${LEGACY_AUTH_COOKIES:-true}
     expose:
       - '8000'
+    networks:
+      default:
+        aliases:
+          - compas-backend
     depends_on:
-      migrate:
+      seed:
         condition: service_completed_successfully
     restart: unless-stopped
     healthcheck:
@@ -50,6 +66,10 @@ services:
     image: public.ecr.aws/nginx/nginx:stable-alpine
     ports:
       - '127.0.0.1:8001:80'
+    networks:
+      default:
+        aliases:
+          - compas-api
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
