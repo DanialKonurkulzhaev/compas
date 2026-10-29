@@ -2,8 +2,6 @@
 
 ## Запуск
 
-Нужны Git и запущенный Docker Desktop (Linux containers). Python и PostgreSQL на компьютер устанавливать не нужно.
-
 Первый запуск:
 
 ```powershell
@@ -22,29 +20,6 @@ git pull --ff-only
 docker compose -f docker-compose.init.yml run --rm init
 docker compose up -d --build
 ```
-
-Если запуск не удался:
-
-```powershell
-docker compose logs --tail 100 migrate seed app nginx
-```
-
-Остановка: `docker compose stop`. Данные сохраняются; для обычного обновления не используйте `down -v`.
-
-### Подключение локального фронта
-
-Для фронта, запущенного через `npm run dev`, в его `.env.development`:
-
-```dotenv
-NEXT_PUBLIC_SERVER_API_URL=http://localhost:8001
-NEXT_PUBLIC_BFF_API_URL=http://localhost:3000/api
-```
-
-После изменения перезапустите `npm run dev`. Фронт открывается на http://localhost:3000; общая Docker-сеть для этого режима не нужна. Вход через Яндекс настраивается отдельно: [docs/yandex-login.md](docs/yandex-login.md).
-
-Для запуска самого фронта в Docker: [docs/frontend-integration.md](docs/frontend-integration.md).
-
-В Linux пользователь контейнера подготовки по умолчанию имеет UID/GID 1000. Если UID/GID владельца проекта другие, задайте `LOCAL_UID` и `LOCAL_GID` перед первой командой. Секреты и дампы не входят в репозиторий.
 
 Включены:
 
@@ -70,4 +45,3 @@ python -m pip install -r requirements-dev.txt
 python -m pytest
 ```
 
-Тесты используют отдельную SQLite в памяти с адаптацией PostgreSQL-массивов только в тестах. Проверяются все 13 расчётов и история, повторная загрузка каталога, профиль, заявки, доступ и границы алертов. SQLite не заменяет проверку миграции и поведения под нагрузкой на PostgreSQL.
