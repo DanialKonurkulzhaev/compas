@@ -1,4 +1,4 @@
-"""Applications and accepted client links change in one transaction."""
+"""Заявки и связь клиента с психологом обновляются в одной транзакции."""
 
 import uuid
 from sqlalchemy import select

@@ -266,20 +266,7 @@ class PsychologistService(BaseService):
         self, client_id: uuid.UUID, psychologist_id: uuid.UUID
     ) -> list[Dict[str, Any]]:
         """
-        Возвращает список тестов, пройденных клиентом, с краткой информацией.
-        Каждый тест представлен один раз с датой последнего прохождения и ID этого результата.
-
-        Возвращаемая структура:
-        [
-            {
-                "test_id": str,
-                "test_name": str,
-                "short_desc": str,
-                "last_date": str (ISO format),
-                "test_result_id": str
-            },
-            ...
-        ]
+        По одной карточке на тест, с датой и ID последнего прохождения.
         """
         try:
             relation = await self.db.clients.get_one_or_none(

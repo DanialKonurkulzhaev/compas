@@ -1,4 +1,4 @@
-"""Create independent local secrets; never read the Odeyalo .env."""
+"""Создание .env для локального запуска."""
 
 from pathlib import Path
 import secrets

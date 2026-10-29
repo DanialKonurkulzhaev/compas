@@ -1,4 +1,4 @@
-"""Password reset transport. No production credentials are bundled."""
+"""Отправка письма для сброса пароля."""
 
 import smtplib
 import ssl

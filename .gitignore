@@ -6,6 +6,11 @@
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+htmlcov.zip
+metriks-report*.xml
 backups/
 *.sql
 *.sql.gz

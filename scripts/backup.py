@@ -1,4 +1,4 @@
-"""Local Compose backup/verification. Restore checks always use a NEW database."""
+"""Дамп PostgreSQL и пробное восстановление в отдельную БД."""
 
 import argparse
 from datetime import datetime, timezone

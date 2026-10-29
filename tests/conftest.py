@@ -1,4 +1,4 @@
-"""Real SQL repositories on an isolated SQLite DB; PostgreSQL arrays adapted only here."""
+"""Тестовая SQLite в памяти; PostgreSQL ARRAY заменяется на JSON на время теста."""
 
 import json
 import uuid

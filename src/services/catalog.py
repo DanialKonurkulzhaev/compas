@@ -1,4 +1,4 @@
-"""Seed missing catalog rows atomically, preserving manual edits and results."""
+"""Загрузка недостающих записей каталога без перезаписи существующих."""
 
 import uuid
 from src.utils.data import load_data

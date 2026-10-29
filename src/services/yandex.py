@@ -1,4 +1,4 @@
-"""Yandex transport and local identity mapping; provider tokens are never stored."""
+"""Обмен кода Яндекса на профиль, вход и привязка аккаунта."""
 
 import uuid
 

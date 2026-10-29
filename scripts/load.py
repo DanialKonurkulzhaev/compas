@@ -1,4 +1,4 @@
-"""Bounded read-only HTTP workload. Reports measurements, not capacity promises."""
+"""Нагрузочный прогон GET-запросов: RPS, p50, p95 и HTTP-статусы."""
 
 import argparse
 import asyncio

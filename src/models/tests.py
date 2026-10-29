@@ -111,10 +111,9 @@ class QuestionOrm(Base):
         ForeignKey("test.id", ondelete="CASCADE")
     )
 
-    # Список ID ответов (хранится как JSON)
+    # В PostgreSQL — массив UUID; JSON используется только в тестовой SQLite.
     answer_choice: Mapped[List[uuid.UUID]] = mapped_column(ARRAY(UUID), default=list)
 
-    # Отношение к тесту
     test: Mapped["TestOrm"] = relationship(back_populates="question")
 
 

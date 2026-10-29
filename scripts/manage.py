@@ -1,4 +1,4 @@
-"""Run from compas: python -m scripts.manage create-admin (or seed)."""
+"""Управление аккаунтами и каталогом: python -m scripts.manage --help."""
 
 import argparse
 import asyncio
